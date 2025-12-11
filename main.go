@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -10,7 +9,7 @@ import (
 
 func main() {
 	pref := telebot.Settings{
-		Token:  "YOUR_NEW_BOT_TOKEN_HERE", // <- replace with fresh token
+		Token: BotToken, // <- replace with fresh token
 		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
 	}
 
@@ -52,4 +51,3 @@ func main() {
 	log.Println("Bot is running...")
 	bot.Start()
 }
-
