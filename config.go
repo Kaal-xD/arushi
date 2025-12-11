@@ -3,9 +3,9 @@ package main
 // Global configuration variables
 
 var (
-	BotToken     = "YOUR_BOT_TOKEN"      // bot token
-	Channel      = "@yourchannel"        // main channel
-	Support      = "@yoursupport"        // support group/user
-	OwnerID int64 = 1234567890           // owner telegram ID
+	BotToken     = "2027709241:AAEcqro-6YUIMLk0ip11cnRnM-g-oGVIxd8"      // bot token
+	Channel      = "https://t.me/adityaserver"        // main channel
+	Support      = "https://t.me/adityadiscus"        // support group/user
+	OwnerID int64 = 1282754256           // owner telegram ID
 )
 
