@@ -166,9 +166,17 @@ func main() {
 
 	// /start command
 	bot.Handle("/start", func(c telebot.Context) error {
-		return c.Send("👋 Welcome to *Arushi Bot*! Type /help to see all commands.",
-			&telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
-	})
+        return c.Send(
+            "🌟 *Welcome to Arushi Bot*\n\n" +
+            "A beautifully crafted assistant designed for performance, clarity and speed.\n\n" +
+            "💠 *Fast • Elegant • Intelligent*\n" +
+            "💠 *System Stats in Real-Time*\n" +
+            "💠 *Clean & Premium Design*\n\n" +
+            "Type */help* to unlock the command panel.\n" +
+            "Enjoy the experience. ⚡",
+            &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
+        )
+    })
 
 	// /help
 	bot.Handle("/help", func(c telebot.Context) error {
