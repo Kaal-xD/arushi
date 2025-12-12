@@ -158,69 +158,20 @@ func statsCommand(c telebot.Context) error {
 // info - cmd to get user info
 func GetUserInfo(bot *telebot.Bot, c telebot.Context) error {
 
-    // format output for both Chat and User
-    format := func(id int64, firstName, username string) string {
-        return fmt.Sprintf(
-            "👤 *User Info*\n"+
-                "• *Name:* %s\n"+
-                "• *ID:* `%d`\n"+
-                "• *Username:* @%s",
-            firstName,
-            id,
-            username,
-        )
-    }
-
-    arg := c.Args()
-
-    // 1️⃣ If reply exists
-    if c.Message().ReplyTo != nil {
-        u := c.Message().ReplyTo.Sender
-        return c.Send(
-            format(u.ID, u.FirstName, u.Username),
-            &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
-        )
-    }
-
-    // 2️⃣ If argument provided
-    if len(arg) > 0 {
-        query := arg[0]
-
-        // Remove @ if username
-        if strings.HasPrefix(query, "@") {
-            query = strings.TrimPrefix(query, "@")
-        }
-
-        // Check numeric ID
-        if id, err := strconv.ParseInt(query, 10, 64); err == nil {
-            chat, err := bot.ChatByID(id)
-            if err != nil {
-                return c.Send("❌ Invalid user ID or user never interacted with the bot.")
-            }
-
-            return c.Send(
-                format(chat.ID, chat.FirstName, chat.Username),
-                &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
-            )
-        }
-
-        // Username lookup
-        chat, err := bot.ChatByUsername(query)
-        if err != nil {
-            return c.Send("❌ Invalid username or user never interacted with the bot.")
-        }
-
-        return c.Send(
-            format(chat.ID, chat.FirstName, chat.Username),
-            &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
-        )
-    }
-
-    // 3️⃣ Default → sender info
     sender := c.Sender()
 
+    msg := fmt.Sprintf(
+        "👤 *Your Info*\n"+
+            "• *Name:* %s\n"+
+            "• *ID:* `%d`\n"+
+            "• *Username:* @%s",
+        sender.FirstName,
+        sender.ID,
+        sender.Username,
+    )
+
     return c.Send(
-        format(sender.ID, sender.FirstName, sender.Username),
+        msg,
         &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
     )
 }
@@ -259,7 +210,7 @@ func main() {
 			"/ping - Show latency\n" +
 			"/stats - System stats (CPU, RAM, Storage, Cores, Uptime)\n" +
 			"/id - Show your Telegram ID\n" +
-		    "/info - Get user info by username or user ID"
+		    "/info - Show your Telegram Info"
 
 		return c.Send(help, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
 	})
