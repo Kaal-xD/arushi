@@ -167,9 +167,10 @@ func main() {
 	// /start command
 	bot.Handle("/start", func(c telebot.Context) error {
 
-        botUser := c.Bot().Me.Username
-        botMention := "@" + botUser
-
+        botUser := c.Bot().Me.Username     // username
+        botName := c.Bot().Me.FirstName    // display name
+        botMention := "*" + botName + "* (@" + botUser + ")"
+		
         startText := 
             "✅ *Welcome to " + botMention + "*\n" +
             "Your smart, fast and elegant Telegram assistant.\n\n" +
