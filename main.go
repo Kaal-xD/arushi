@@ -155,59 +155,74 @@ func statsCommand(c telebot.Context) error {
     return nil
 }
 
+// info - cmd to get user info
 func GetUserInfo(bot *telebot.Bot, c telebot.Context) error {
 
-    // Helper formatter
-    format := func(u *telebot.User) string {
+    // format output for both Chat and User
+    format := func(id int64, firstName, username string) string {
         return fmt.Sprintf(
             "👤 *User Info*\n"+
                 "• *Name:* %s\n"+
                 "• *ID:* `%d`\n"+
                 "• *Username:* @%s",
-            u.FirstName,
-            u.ID,
-            u.Username,
+            firstName,
+            id,
+            username,
         )
     }
 
-    var target *telebot.User
     arg := c.Args()
 
-    // 1️⃣ If reply target exists
+    // 1️⃣ If reply exists
     if c.Message().ReplyTo != nil {
-        target = c.Message().ReplyTo.Sender
-        return c.Send(format(target), &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
+        u := c.Message().ReplyTo.Sender
+        return c.Send(
+            format(u.ID, u.FirstName, u.Username),
+            &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
+        )
     }
 
-    // 2️⃣ If argument provided (@username or ID)
+    // 2️⃣ If argument provided
     if len(arg) > 0 {
         query := arg[0]
 
+        // Remove @ if username
         if strings.HasPrefix(query, "@") {
             query = strings.TrimPrefix(query, "@")
         }
 
-        // ID check
-        if id, err := strconv.Atoi(query); err == nil {
-            user, err := bot.ChatByID(id)
+        // Check numeric ID
+        if id, err := strconv.ParseInt(query, 10, 64); err == nil {
+            chat, err := bot.ChatByID(id)
             if err != nil {
-                return c.Send("❌ Invalid user ID or user never interacted with me.")
+                return c.Send("❌ Invalid user ID or user never interacted with the bot.")
             }
-            return c.Send(format(user), &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
+
+            return c.Send(
+                format(chat.ID, chat.FirstName, chat.Username),
+                &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
+            )
         }
 
-        // Username check
-        user, err := bot.ChatByUsername(query)
+        // Username lookup
+        chat, err := bot.ChatByUsername(query)
         if err != nil {
-            return c.Send("❌ Invalid username or user never interacted with me.")
+            return c.Send("❌ Invalid username or user never interacted with the bot.")
         }
 
-        return c.Send(format(user), &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
+        return c.Send(
+            format(chat.ID, chat.FirstName, chat.Username),
+            &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
+        )
     }
 
     // 3️⃣ Default → sender info
     sender := c.Sender()
-    return c.Send(format(sender), &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
+
+    return c.Send(
+        format(sender.ID, sender.FirstName, sender.Username),
+        &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
+    )
 }
 	
 func main() {
