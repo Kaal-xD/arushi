@@ -166,8 +166,12 @@ func main() {
 
 	// /start command
 	bot.Handle("/start", func(c telebot.Context) error {
+		
+        botUser := c.Bot().Me.Username
+        botMention := "@" + botUser
+
         return c.Send(
-            "🌟 *Welcome to Arushi Bot*\n\n" +
+            "🌟 *Welcome to " + botMention + "*\n\n" +
             "A beautifully crafted assistant designed for performance, clarity and speed.\n\n" +
             "💠 *Fast • Elegant • Intelligent*\n" +
             "💠 *System Stats in Real-Time*\n" +
