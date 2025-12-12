@@ -6,22 +6,15 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 	"gopkg.in/telebot.v3"
 )
 
 var startTime = time.Now() // for uptime calculation
 
-// safeDelete tries to delete the user's message and ignores any error.
-func safeDelete(c telebot.Context) {
-	if err := c.Delete(); err != nil {
-		// ignore delete error (like Python's try: ... except: pass)
-	}
-}
-
-// formatDuration converts a time.Duration to a human readable string.
+// formatDuration converts time.Duration to readable uptime
 func formatDuration(d time.Duration) string {
-	// round to seconds
 	secs := int(d.Seconds())
 	days := secs / 86400
 	secs %= 86400
@@ -42,78 +35,7 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%02ds", secs)
 }
 
-// pingCommand sends a temporary message to measure latency then edits it to show ms.
-func pingCommand(c telebot.Context) error {
-	safeDelete(c)
-
-	start := time.Now()
-	msg, err := c.Bot().Send(c.Chat(), "🏓 Pinging...")
-	if err != nil {
-		return err
-	}
-
-	latency := time.Since(start).Milliseconds()
-
-	_, _ = c.Bot().Edit(msg, fmt.Sprintf("🏓 Pong! `%dms`", latency),
-		&telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
-	)
-
-	return nil
-}
-
-// statsCommand shows ping latency + uptime + CPU% + RAM usage
-func statsCommand(c telebot.Context) error {
-	safeDelete(c)
-
-	// measure ping (send then edit)
-	start := time.Now()
-	msg, err := c.Bot().Send(c.Chat(), "📊 Gathering stats...")
-	if err != nil {
-		return err
-	}
-	latency := time.Since(start).Milliseconds()
-
-	// CPU percent (instant snapshot)
-	cpuPercents, err := cpu.Percent(0, false)
-	cpuPercent := float64(0)
-	if err == nil && len(cpuPercents) > 0 {
-		cpuPercent = cpuPercents[0]
-	}
-
-	// Memory info
-	vm, err := mem.VirtualMemory()
-	memUsedPercent := float64(0)
-	memUsed := uint64(0)
-	memTotal := uint64(0)
-	if err == nil {
-		memUsedPercent = vm.UsedPercent
-		memUsed = vm.Used
-		memTotal = vm.Total
-	}
-
-	uptime := formatDuration(time.Since(startTime))
-
-	// Build stats message
-	stats := fmt.Sprintf(
-		"*Bot Stats*\n\n"+
-			"🏓 Latency: `%dms`\n"+
-			"⏱ Uptime: `%s`\n\n"+
-			"💻 CPU Usage: `%.2f%%`\n"+
-			"🧠 RAM Usage: `%.2f%%` (%s / %s)\n",
-		latency,
-		uptime,
-		cpuPercent,
-		memUsedPercent,
-		bytesToHuman(memUsed),
-		bytesToHuman(memTotal),
-	)
-
-	_, _ = c.Bot().Edit(msg, stats, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
-
-	return nil
-}
-
-// bytesToHuman converts bytes to a compact human readable string.
+// bytesToHuman converts bytes to KB/MB/GB/etc
 func bytesToHuman(b uint64) string {
 	const unit = 1024
 	if b < unit {
@@ -129,9 +51,85 @@ func bytesToHuman(b uint64) string {
 	return fmt.Sprintf("%.2f %s", value, suffix)
 }
 
+// pingCommand → sends latency
+func pingCommand(c telebot.Context) error {
+	start := time.Now()
+	msg, err := c.Bot().Send(c.Chat(), "🏓 Pinging...")
+	if err != nil {
+		return err
+	}
+
+	latency := time.Since(start).Milliseconds()
+
+	_, _ = c.Bot().Edit(msg,
+		fmt.Sprintf("🏓 Pong! `%dms`", latency),
+		&telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
+	)
+
+	return nil
+}
+
+// statsCommand → uptime + CPU + RAM + Storage + Ping
+func statsCommand(c telebot.Context) error {
+
+	// Test latency
+	start := time.Now()
+	msg, err := c.Bot().Send(c.Chat(), "📊 Collecting system metrics...")
+	if err != nil {
+		return err
+	}
+	latency := time.Since(start).Milliseconds()
+
+	// CPU Usage %
+	cpuPercentList, _ := cpu.Percent(0, false)
+	cpuPercent := cpuPercentList[0]
+
+	// CPU Cores
+	coresPhysical, _ := cpu.Counts(false)
+	coresLogical, _ := cpu.Counts(true)
+
+	// Memory
+	vm, _ := mem.VirtualMemory()
+
+	// Disk (root partition)
+	diskStat, _ := disk.Usage("/") // Linux, Termux, Ubuntu, VPS
+
+	// Uptime
+	uptime := formatDuration(time.Since(startTime))
+
+	stats := fmt.Sprintf(
+		"*📊 System Performance Metrics*\n\n"+
+			"🏓 *Latency:* `%dms`\n"+
+			"⏱ *Uptime:* `%s`\n\n"+
+			"💻 *CPU Usage:* `%.2f%%`\n"+
+			"🧩 *CPU Cores:* `%d physical` | `%d logical`\n\n"+
+			"🧠 *RAM:* `%.2f%%` (%s / %s)\n\n"+
+			"💾 *Storage:* `%.2f%%`\n"+
+			"• Used: %s\n"+
+			"• Free: %s\n"+
+			"• Total: %s\n",
+		latency,
+		uptime,
+		cpuPercent,
+		coresPhysical,
+		coresLogical,
+		vm.UsedPercent,
+		bytesToHuman(vm.Used),
+		bytesToHuman(vm.Total),
+		diskStat.UsedPercent,
+		bytesToHuman(diskStat.Used),
+		bytesToHuman(diskStat.Free),
+		bytesToHuman(diskStat.Total),
+	)
+
+	_, _ = c.Bot().Edit(msg, stats, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
+
+	return nil
+}
+
 func main() {
 	pref := telebot.Settings{
-		Token: BotToken, // <-- keeps your original BotToken variable
+		Token:  BotToken,
 		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
 	}
 
@@ -142,38 +140,30 @@ func main() {
 
 	// /start command
 	bot.Handle("/start", func(c telebot.Context) error {
-		safeDelete(c)
-		return c.Send("👋 Hello! Welcome to Arushi Bot.\nType /help to see all commands.")
+		return c.Send("👋 Welcome to *Arushi Bot*! Type /help to see all commands.",
+			&telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
 	})
 
-	// /help command
+	// /help
 	bot.Handle("/help", func(c telebot.Context) error {
-		safeDelete(c)
+		help := "📘 *Available Commands:*\n\n" +
+			"/start - Welcome message\n" +
+			"/help - Show help menu\n" +
+			"/ping - Show latency\n" +
+			"/stats - System stats (CPU, RAM, Storage, Cores, Uptime)\n" +
+			"/id - Show your Telegram ID"
 
-		text := "📘 *Available Commands:*\n\n" +
-			"/start - Start the bot\n" +
-			"/help - Show this help menu\n" +
-			"/ping - Check bot status (latency)\n" +
-			"/stats - Show bot stats (uptime, CPU, RAM, latency)\n" +
-			"/id - Show your Telegram ID\n"
-
-		return c.Send(text, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
+		return c.Send(help, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
 	})
 
-	// /ping command
+	// /ping
 	bot.Handle("/ping", pingCommand)
 
-	// /stats command
+	// /stats
 	bot.Handle("/stats", statsCommand)
 
-	// /id → only works in private, silent in groups
+	// /id (works everywhere)
 	bot.Handle("/id", func(c telebot.Context) error {
-		safeDelete(c)
-
-		if !c.Message().Private() {
-			return nil // silent in groups
-		}
-
 		uid := fmt.Sprint(c.Sender().ID)
 		return c.Send("🆔 *Your Telegram ID:* `"+uid+"`",
 			&telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
@@ -181,16 +171,10 @@ func main() {
 
 	// Reply to any text message
 	bot.Handle(telebot.OnText, func(c telebot.Context) error {
-		safeDelete(c)
-
 		user := c.Sender().FirstName
-		msg := c.Text()
-
-		reply := "You said: " + msg + "\nNice to meet you, " + user + " 😊"
-
-		return c.Send(reply)
+		return c.Send("You said: " + c.Text() + "\nNice to meet you, " + user + " 😊")
 	})
 
-	log.Println("Bot is running...")
+	log.Println("Bot is running…")
 	bot.Start()
 }
