@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os/exec"
 	"time"
 	"strings"
 
@@ -177,54 +178,69 @@ func GetUserInfo(bot *telebot.Bot, c telebot.Context) error {
 }
 
 func ytCommand(c telebot.Context) error {
-	query := c.Args()
-	if len(query) == 0 {
-		return c.Send("Usage: /yt query or url")
-	}
+    query := c.Args()
+    if len(query) == 0 {
+        return c.Send("Usage: /yt query or url")
+    }
 
-	text := strings.Join(query, " ")
+    text := strings.Join(query, " ")
 
-	yt := youtube.Client{}
-	var videoURL string
+    yt := youtube.Client{}
+    var videoURL string
 
-	if strings.Contains(text, "youtube.com") || strings.Contains(text, "youtu.be") {
-		videoURL = text
-	} else {
-		results, err := yt.Search(text)
-		if err != nil || len(results) == 0 {
-			return c.Send("No results found.")
-		}
-		videoURL = "https://www.youtube.com/watch?v=" + results[0].ID
-	}
+    // If input is already a YouTube URL
+    if strings.Contains(text, "youtube.com") || strings.Contains(text, "youtu.be") {
+        videoURL = text
+    } else {
+        // --- YT-DLP SEARCH FIX ---
+        cmd := exec.Command("yt-dlp", "ytsearch1:"+text, "--get-id")
+        out, err := cmd.Output()
+        if err != nil {
+            return c.Send("Search failed.")
+        }
 
-	video, err := yt.GetVideo(videoURL)
-	if err != nil {
-		return c.Send("Failed to get video info.")
-	}
+        videoID := strings.TrimSpace(string(out))
+        if videoID == "" {
+            return c.Send("No results found.")
+        }
 
-	formats := video.Formats.Type("audio")
-	if len(formats) == 0 {
-		return c.Send("No audio stream available.")
-	}
+        videoURL = "https://www.youtube.com/watch?v=" + videoID
+    }
 
-	streamURL, err := yt.GetStreamURL(video, &formats[0])
-	if err != nil {
-		return c.Send("Failed to extract audio URL.")
-	}
+    // Get video info
+    video, err := yt.GetVideo(videoURL)
+    if err != nil {
+        return c.Send("Failed to get video info.")
+    }
 
-	msg := fmt.Sprintf(
-		"🎵 *YouTube Info*\n\n"+
-			"*ID:* `%s`\n"+
-			"*Title:* %s\n"+
-			"*Duration:* %v\n"+
-			"*Audio Link:* [Click Here](%s)",
-		video.ID,
-		video.Title,
-		video.Duration,
-		streamURL,
-	)
+    // Get audio-only formats
+    formats := video.Formats.WithAudioChannels()
+    if len(formats) == 0 {
+        return c.Send("No audio stream available.")
+    }
 
-	return c.Send(msg, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
+    // Best audio format
+    format := formats.Best()
+
+    // Get audio stream URL
+    streamURL, err := yt.GetStreamURL(video, format)
+    if err != nil {
+        return c.Send("Failed to extract audio URL.")
+    }
+
+    msg := fmt.Sprintf(
+        "🎵 *YouTube Info*\n\n"+
+            "*ID:* `%s`\n"+
+            "*Title:* %s\n"+
+            "*Duration:* %v\n"+
+            "*Audio Link:* [Click Here](%s)",
+        video.ID,
+        video.Title,
+        video.Duration,
+        streamURL,
+    )
+
+    return c.Send(msg, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
 }
 	
 func main() {
