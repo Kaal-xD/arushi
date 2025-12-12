@@ -71,6 +71,7 @@ func pingCommand(c telebot.Context) error {
 
 // statsCommand → uptime + ping + Storage + RAM + CPU
 func statsCommand(c telebot.Context) error {
+func statsCommand(c telebot.Context) error {
 
     // Latency
     start := time.Now()
@@ -83,40 +84,37 @@ func statsCommand(c telebot.Context) error {
     // Uptime
     uptime := formatDuration(time.Since(startTime))
 
-    // CPU usage & cores
+    // CPU
     cpuPerc, _ := cpu.Percent(0, false)
     cpuUsage := cpuPerc[0]
     physicalCores, _ := cpu.Counts(false)
     logicalCores, _ := cpu.Counts(true)
 
-    // RAM info
+    // RAM
     vm, _ := mem.VirtualMemory()
 
-    // Storage info
+    // Storage
     diskStat, _ := disk.Usage("/")
 
+    // Build compact formatted stats
     stats := fmt.Sprintf(
-        "📊 *System Status*\n\n"+
+        "📊 *System Performance Metrics*\n\n"+
             "⚡ *Latency:* `%dms`\n"+
             "⏱ *Uptime:* `%s`\n\n"+
             "💾 *Storage*\n"+
-            "├ Used: %s\n"+
-            "├ Free: %s\n"+
-            "└ Total: %s\n\n"+
+            "└ %.2f%% (%s / %s)\n\n"+
             "🧠 *RAM*\n"+
-            "├ Used: %s\n"+
-            "├ Free: %s\n"+
-            "└ Total: %s\n\n"+
+            "└ %.2f%% (%s / %s)\n\n"+
             "💻 *CPU*\n"+
             "├ Usage: %.2f%%\n"+
             "└ Cores: %d Physical | %d Logical\n",
         latency,
         uptime,
+        diskStat.UsedPercent,
         bytesToHuman(diskStat.Used),
-        bytesToHuman(diskStat.Free),
         bytesToHuman(diskStat.Total),
+        vm.UsedPercent,
         bytesToHuman(vm.Used),
-        bytesToHuman(vm.Free),
         bytesToHuman(vm.Total),
         cpuUsage,
         physicalCores,
@@ -127,7 +125,7 @@ func statsCommand(c telebot.Context) error {
 
     return nil
 }
-
+	
 func main() {
 	pref := telebot.Settings{
 		Token:  BotToken,
