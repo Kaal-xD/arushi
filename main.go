@@ -71,7 +71,6 @@ func pingCommand(c telebot.Context) error {
 
 // statsCommand → uptime + ping + Storage + RAM + CPU
 func statsCommand(c telebot.Context) error {
-func statsCommand(c telebot.Context) error {
 
     // Latency
     start := time.Now()
