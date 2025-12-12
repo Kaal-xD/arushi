@@ -69,62 +69,63 @@ func pingCommand(c telebot.Context) error {
 	return nil
 }
 
-// statsCommand → uptime + CPU + RAM + Storage + Ping
+// statsCommand → uptime + ping + Storage + RAM + CPU
 func statsCommand(c telebot.Context) error {
 
-	// Test latency
-	start := time.Now()
-	msg, err := c.Bot().Send(c.Chat(), "📊 Collecting system metrics...")
-	if err != nil {
-		return err
-	}
-	latency := time.Since(start).Milliseconds()
+    // Latency
+    start := time.Now()
+    msg, err := c.Bot().Send(c.Chat(), "📊 Fetching stats...")
+    if err != nil {
+        return err
+    }
+    latency := time.Since(start).Milliseconds()
 
-	// CPU Usage %
-	cpuPercentList, _ := cpu.Percent(0, false)
-	cpuPercent := cpuPercentList[0]
+    // Uptime
+    uptime := formatDuration(time.Since(startTime))
 
-	// CPU Cores
-	coresPhysical, _ := cpu.Counts(false)
-	coresLogical, _ := cpu.Counts(true)
+    // CPU usage & cores
+    cpuPerc, _ := cpu.Percent(0, false)
+    cpuUsage := cpuPerc[0]
+    physicalCores, _ := cpu.Counts(false)
+    logicalCores, _ := cpu.Counts(true)
 
-	// Memory
-	vm, _ := mem.VirtualMemory()
+    // RAM info
+    vm, _ := mem.VirtualMemory()
 
-	// Disk (root partition)
-	diskStat, _ := disk.Usage("/") // Linux, Termux, Ubuntu, VPS
+    // Storage info
+    diskStat, _ := disk.Usage("/")
 
-	// Uptime
-	uptime := formatDuration(time.Since(startTime))
+    stats := fmt.Sprintf(
+        "📊 *System Status*\n\n"+
+            "⚡ *Latency:* `%dms`\n"+
+            "⏱ *Uptime:* `%s`\n\n"+
+            "💾 *Storage*\n"+
+            "├ Used: %s\n"+
+            "├ Free: %s\n"+
+            "└ Total: %s\n\n"+
+            "🧠 *RAM*\n"+
+            "├ Used: %s\n"+
+            "├ Free: %s\n"+
+            "└ Total: %s\n\n"+
+            "💻 *CPU*\n"+
+            "├ Usage: %.2f%%\n"+
+            "└ Cores: %d Physical | %d Logical\n",
+        latency,
+        uptime,
+        bytesToHuman(diskStat.Used),
+        bytesToHuman(diskStat.Free),
+        bytesToHuman(diskStat.Total),
+        bytesToHuman(vm.Used),
+        bytesToHuman(vm.Free),
+        bytesToHuman(vm.Total),
+        cpuUsage,
+        physicalCores,
+        logicalCores,
+    )
 
-	stats := fmt.Sprintf(
-		"*📊 System Performance Metrics*\n\n"+
-			"🏓 *Latency:* `%dms`\n"+
-			"⏱ *Uptime:* `%s`\n\n"+
-			"💻 *CPU Usage:* `%.2f%%`\n"+
-			"🧩 *CPU Cores:* `%d physical` | `%d logical`\n\n"+
-			"🧠 *RAM:* `%.2f%%` (%s / %s)\n\n"+
-			"💾 *Storage:* `%.2f%%`\n"+
-			"• Used: %s\n"+
-			"• Free: %s\n"+
-			"• Total: %s\n",
-		latency,
-		uptime,
-		cpuPercent,
-		coresPhysical,
-		coresLogical,
-		vm.UsedPercent,
-		bytesToHuman(vm.Used),
-		bytesToHuman(vm.Total),
-		diskStat.UsedPercent,
-		bytesToHuman(diskStat.Used),
-		bytesToHuman(diskStat.Free),
-		bytesToHuman(diskStat.Total),
-	)
+    _, _ = c.Bot().Edit(msg, stats, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
 
-	_, _ = c.Bot().Edit(msg, stats, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
-
-	return nil
+    return nil
 }
 
 func main() {
