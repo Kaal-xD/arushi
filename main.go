@@ -171,13 +171,7 @@ func main() {
         botMention := "@" + botUser
 
         return c.Send(
-            "🌟 *Welcome to " + botMention + "*\n\n" +
-            "A beautifully crafted assistant designed for performance, clarity and speed.\n\n" +
-            "💠 *Fast • Elegant • Intelligent*\n" +
-            "💠 *System Stats in Real-Time*\n" +
-            "💠 *Clean & Premium Design*\n\n" +
-            "Type */help* to unlock the command panel.\n" +
-            "Enjoy the experience. ⚡",
+            "Welcome to " + botMention + "!Type /help to see all commands."
             &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
         )
     })
