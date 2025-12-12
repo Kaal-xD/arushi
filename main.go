@@ -184,15 +184,14 @@ func ytCommand(c telebot.Context) error {
     }
 
     text := strings.Join(query, " ")
-
     yt := youtube.Client{}
     var videoURL string
 
-    // If input is already a YouTube URL
+    // Already a URL?
     if strings.Contains(text, "youtube.com") || strings.Contains(text, "youtu.be") {
         videoURL = text
     } else {
-        // --- YT-DLP SEARCH FIX ---
+        // YT-DLP SEARCH FIX
         cmd := exec.Command("yt-dlp", "ytsearch1:"+text, "--get-id")
         out, err := cmd.Output()
         if err != nil {
@@ -213,17 +212,22 @@ func ytCommand(c telebot.Context) error {
         return c.Send("Failed to get video info.")
     }
 
-    // Get audio-only formats
-    formats := video.Formats.WithAudioChannels()
-    if len(formats) == 0 {
+    // List audio formats
+    audioFormats := video.Formats.WithAudioChannels()
+    if len(audioFormats) == 0 {
         return c.Send("No audio stream available.")
     }
 
-    // Best audio format
-    format := formats.Best()
+    // --- PICK BEST AUDIO FORMAT MANUALLY ---
+    best := audioFormats[0]
+    for _, f := range audioFormats {
+        if f.AverageBitrate > best.AverageBitrate {
+            best = f
+        }
+    }
 
-    // Get audio stream URL
-    streamURL, err := yt.GetStreamURL(video, format)
+    // Get stream URL
+    streamURL, err := yt.GetStreamURL(video, &best)
     if err != nil {
         return c.Send("Failed to extract audio URL.")
     }
