@@ -159,7 +159,7 @@ func GetUserInfo(bot *telebot.Bot, c telebot.Context) error {
     sender := c.Sender()
 
     msg := fmt.Sprintf(
-        "👤 *Your Info*\n"+
+        "👤 *Your Telegram Info*\n"+
             "• *Name:* %s\n"+
             "• *ID:* `%d`\n"+
             "• *Username:* @%s",
