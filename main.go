@@ -166,12 +166,22 @@ func main() {
 
 	// /start command
 	bot.Handle("/start", func(c telebot.Context) error {
-		
+
         botUser := c.Bot().Me.Username
         botMention := "@" + botUser
 
+        startText := 
+            "✅ *Welcome to " + botMention + "*\n" +
+            "Your smart, fast and elegant Telegram assistant.\n\n" +
+            "📌 *Features*\n" +
+            "• Lightning-fast responses ⚡\n" +
+            "• Clean and modern design 🎨\n" +
+            "• Powerful tools & utilities 🛠️\n" +
+            "• Smooth command experience 💫\n\n" +
+            "👉 Type */help* to explore all commands."
+
         return c.Send(
-            "Welcome to " + botMention + "!Type /help to see all commands."
+            startText,
             &telebot.SendOptions{ParseMode: telebot.ModeMarkdown},
         )
     })
