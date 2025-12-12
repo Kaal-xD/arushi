@@ -51,6 +51,22 @@ func bytesToHuman(b uint64) string {
 	return fmt.Sprintf("%.2f %s", value, suffix)
 }
 
+// make premium looking status bar
+func makeBar(percent float64) string {
+    totalBars := 10
+    filledBars := int((percent / 100) * float64(totalBars))
+
+    bar := ""
+    for i := 0; i < totalBars; i++ {
+        if i < filledBars {
+            bar += "▰"
+        } else {
+            bar += "▱"
+        }
+    }
+    return bar
+}
+
 // pingCommand → sends latency
 func pingCommand(c telebot.Context) error {
 	start := time.Now()
@@ -95,26 +111,38 @@ func statsCommand(c telebot.Context) error {
     // Storage
     diskStat, _ := disk.Usage("/")
 
-    // Build compact formatted stats
+    // Build clean decorated stats with bars
     stats := fmt.Sprintf(
         "📊 *System Performance Metrics*\n\n"+
             "⚡ *Latency:* `%dms`\n"+
             "⏱ *Uptime:* `%s`\n\n"+
+
             "💾 *Storage*\n"+
-            "└ %.2f%% (%s / %s)\n\n"+
+            "%s `%.2f%%`\n"+
+            "└ (%s / %s)\n\n"+
+
             "🧠 *RAM*\n"+
-            "└ %.2f%% (%s / %s)\n\n"+
+            "%s `%.2f%%`\n"+
+            "└ (%s / %s)\n\n"+
+
             "💻 *CPU*\n"+
-            "├ Usage: %.2f%%\n"+
+            "%s `%.2f%%`\n"+
             "└ Cores: %d Physical | %d Logical\n",
+        
         latency,
         uptime,
+
+        makeBar(diskStat.UsedPercent),
         diskStat.UsedPercent,
         bytesToHuman(diskStat.Used),
         bytesToHuman(diskStat.Total),
+
+        makeBar(vm.UsedPercent),
         vm.UsedPercent,
         bytesToHuman(vm.Used),
         bytesToHuman(vm.Total),
+
+        makeBar(cpuUsage),
         cpuUsage,
         physicalCores,
         logicalCores,
