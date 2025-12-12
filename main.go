@@ -258,7 +258,7 @@ func main() {
 			"/help - Show help menu\n" +
 			"/ping - Show latency\n" +
 			"/stats - System stats (CPU, RAM, Storage, Cores, Uptime)\n" +
-			"/id - Show your Telegram ID" +
+			"/id - Show your Telegram ID\n" +
 		    "/info - Get user info by username or user ID"
 
 		return c.Send(help, &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
