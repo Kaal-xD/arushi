@@ -169,7 +169,7 @@ func main() {
 
         botUser := c.Bot().Me.Username     // username
         botName := c.Bot().Me.FirstName    // display name
-        botMention := "*" + botName + "* (@" + botUser + ")"
+        botMention := "*[" + botName + "](https://t.me/" + botUser + ")*"
 		
         startText := 
             "✅ *Welcome to " + botMention + "*\n" +
