@@ -6,6 +6,7 @@ import (
 	"time"
 	"strings"
 
+	"github.com/kkdai/youtube/v2"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
