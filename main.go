@@ -206,7 +206,7 @@ func main() {
 			"/start - Welcome message\n" +
 			"/help - Show help menu\n" +
 			"/ping - Show latency\n" +
-			"/stats - System stats (CPU, RAM, Storage, Cores, Uptime)\n" +
+			"/stats - System stats\n" +
 			"/id - Show your Telegram ID\n" +
 		    "/info - Show your Telegram Info"
 
