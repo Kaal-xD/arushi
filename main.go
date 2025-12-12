@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+    "net/url"
 	"os/exec"
 	"time"
 	"strings"
@@ -177,6 +180,30 @@ func GetUserInfo(bot *telebot.Bot, c telebot.Context) error {
     )
 }
 
+func SearchYouTube(query string) (string, error) {
+    apiURL := "https://vid.puffyan.us/api/v1/search?q=" + url.QueryEscape(query)
+
+    resp, err := http.Get(apiURL)
+    if err != nil {
+        return "", err
+    }
+    defer resp.Body.Close()
+
+    var results []struct {
+        VideoId string `json:"videoId"`
+    }
+
+    if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+        return "", err
+    }
+
+    if len(results) == 0 {
+        return "", fmt.Errorf("no results")
+    }
+
+    return "https://youtu.be/" + results[0].VideoId, nil
+}
+
 func ytCommand(c telebot.Context) error {
     query := c.Args()
     if len(query) == 0 {
@@ -185,25 +212,19 @@ func ytCommand(c telebot.Context) error {
 
     text := strings.Join(query, " ")
     yt := youtube.Client{}
+
     var videoURL string
 
-    // Already a URL?
+    // If user provided a direct YouTube URL
     if strings.Contains(text, "youtube.com") || strings.Contains(text, "youtu.be") {
         videoURL = text
     } else {
-        // YT-DLP SEARCH FIX
-        cmd := exec.Command("yt-dlp", "ytsearch1:"+text, "--get-id")
-        out, err := cmd.Output()
+        // Use Invidious API search (no API key, no login)
+        var err error
+        videoURL, err = SearchYouTube(text)
         if err != nil {
-            return c.Send("Search failed.")
-        }
-
-        videoID := strings.TrimSpace(string(out))
-        if videoID == "" {
             return c.Send("No results found.")
         }
-
-        videoURL = "https://www.youtube.com/watch?v=" + videoID
     }
 
     // Get video info
@@ -212,13 +233,13 @@ func ytCommand(c telebot.Context) error {
         return c.Send("Failed to get video info.")
     }
 
-    // List audio formats
+    // Get all audio formats
     audioFormats := video.Formats.WithAudioChannels()
     if len(audioFormats) == 0 {
         return c.Send("No audio stream available.")
     }
 
-    // --- PICK BEST AUDIO FORMAT MANUALLY ---
+    // Pick highest bitrate audio
     best := audioFormats[0]
     for _, f := range audioFormats {
         if f.AverageBitrate > best.AverageBitrate {
@@ -226,7 +247,7 @@ func ytCommand(c telebot.Context) error {
         }
     }
 
-    // Get stream URL
+    // Extract audio stream URL
     streamURL, err := yt.GetStreamURL(video, &best)
     if err != nil {
         return c.Send("Failed to extract audio URL.")
